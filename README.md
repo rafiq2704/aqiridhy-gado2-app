@@ -1,0 +1,1 @@
+# aqiridhy-gado2-app
