@@ -8,21 +8,21 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
 <style>
   :root{
-    --bg:#0a0e14;
-    --panel:#0f1620;
-    --line:#1c2836;
-    --ink:#e8f0f7;
-    --dim:#5f7285;
-    --a:#00e5c4;        /* shuttle cyan */
-    --b:#ff5d3b;        /* strike orange */
-    --grid:rgba(0,229,196,.06);
+    --bg:#f7f5f2;
+    --panel:#ffffff;
+    --line:#e7e0d8;
+    --ink:#1f1a15;
+    --dim:#9a8f82;
+    --a:#ff6a1a;        /* primary orange */
+    --b:#c23a0e;        /* deep orange (side B) */
+    --grid:rgba(255,106,26,.06);
     --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
     background:
-      radial-gradient(1200px 600px at 50% -10%, rgba(0,229,196,.05), transparent),
+      radial-gradient(1200px 600px at 50% -10%, rgba(255,106,26,.06), transparent),
       var(--bg);
     color:var(--ink);
     font-family:var(--mono);
@@ -36,7 +36,7 @@
   .logo b{color:var(--a)}
   .tag{color:var(--dim);font-size:11px;letter-spacing:.18em}
   .stat{margin-left:auto;display:flex;gap:16px;font-size:11px;color:var(--dim);letter-spacing:.1em}
-  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3a4b5c;margin-right:6px;vertical-align:middle}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#cfc6bb;margin-right:6px;vertical-align:middle}
   .dot.live{background:var(--a);box-shadow:0 0 10px var(--a);animation:pulse 1.4s infinite}
   @keyframes pulse{50%{opacity:.35}}
 
@@ -82,16 +82,16 @@
   .feed canvas{transform:scaleX(-1)}
   .feed .empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--dim);text-align:center;padding:20px}
   .feed .empty svg{opacity:.4}
-  .cam-btn{background:var(--a);color:#04120f;border:none;padding:12px 22px;border-radius:3px;font-family:var(--mono);font-weight:800;letter-spacing:.14em;font-size:12px;cursor:pointer}
-  .cam-btn:hover{box-shadow:0 0 18px rgba(0,229,196,.5)}
-  .overlay-tag{position:absolute;top:10px;left:10px;z-index:3;font-size:10px;letter-spacing:.18em;color:var(--a);background:rgba(4,18,15,.7);padding:4px 9px;border-radius:3px;border:1px solid rgba(0,229,196,.3)}
-  .calib-badge{position:absolute;bottom:10px;left:10px;z-index:3;font-size:9px;letter-spacing:.14em;color:var(--dim);background:rgba(4,18,15,.7);padding:4px 9px;border-radius:3px;border:1px solid var(--line)}
-  .calib-badge.set{color:var(--a);border-color:rgba(0,229,196,.3)}
+  .cam-btn{background:var(--a);color:#ffffff;border:none;padding:12px 22px;border-radius:3px;font-family:var(--mono);font-weight:800;letter-spacing:.14em;font-size:12px;cursor:pointer}
+  .cam-btn:hover{box-shadow:0 0 18px rgba(255,106,26,.45)}
+  .overlay-tag{position:absolute;top:10px;left:10px;z-index:3;font-size:10px;letter-spacing:.18em;color:var(--a);background:rgba(255,255,255,.92);padding:4px 9px;border-radius:3px;border:1px solid rgba(255,106,26,.35)}
+  .calib-badge{position:absolute;bottom:10px;left:10px;z-index:3;font-size:9px;letter-spacing:.14em;color:var(--dim);background:rgba(255,255,255,.92);padding:4px 9px;border-radius:3px;border:1px solid var(--line)}
+  .calib-badge.set{color:var(--a);border-color:rgba(255,106,26,.35)}
   .feed.calibrating{cursor:crosshair}
   .calib-hint{position:absolute;inset:0;z-index:4;display:none;align-items:flex-start;justify-content:center;pointer-events:none;padding-top:14px}
   .feed.calibrating .calib-hint{display:flex}
-  .calib-hint span{background:rgba(4,18,15,.85);color:var(--a);border:1px solid rgba(0,229,196,.4);padding:6px 12px;border-radius:3px;font-size:11px;letter-spacing:.12em}
-  .speedpop{position:absolute;top:10px;right:10px;z-index:3;font-size:11px;letter-spacing:.1em;color:var(--b);background:rgba(20,6,4,.75);padding:5px 10px;border-radius:3px;border:1px solid rgba(255,93,59,.35);font-weight:700;opacity:0;transition:.2s}
+  .calib-hint span{background:rgba(255,255,255,.95);color:var(--a);border:1px solid rgba(255,106,26,.4);padding:6px 12px;border-radius:3px;font-size:11px;letter-spacing:.12em}
+  .speedpop{position:absolute;top:10px;right:10px;z-index:3;font-size:11px;letter-spacing:.1em;color:#fff;background:rgba(194,58,14,.92);padding:5px 10px;border-radius:3px;border:1px solid rgba(194,58,14,.5);font-weight:700;opacity:0;transition:.2s}
   .speedpop.show{opacity:1}
 
   .tele{display:flex;flex-direction:column;gap:12px}
@@ -108,11 +108,11 @@
   .toggle{display:flex;gap:8px;flex-wrap:wrap}
   .toggle button{flex:1;min-width:70px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:8px;border:1px solid var(--line);background:none;color:var(--dim);border-radius:3px;cursor:pointer}
   .toggle button.on{color:var(--a);border-color:var(--a)}
-  .banner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,10,15,.92);z-index:50;flex-direction:column;gap:18px;text-align:center;padding:24px}
+  .banner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(247,245,242,.94);z-index:50;flex-direction:column;gap:18px;text-align:center;padding:24px}
   .banner.show{display:flex}
   .banner .w{font-size:34px;font-weight:800;letter-spacing:.1em;color:var(--a)}
   .banner .s{color:var(--dim);letter-spacing:.14em;font-size:13px}
-  .banner button{background:var(--a);color:#04120f;border:none;padding:12px 26px;border-radius:3px;font-family:var(--mono);font-weight:800;letter-spacing:.14em;cursor:pointer}
+  .banner button{background:var(--a);color:#ffffff;border:none;padding:12px 26px;border-radius:3px;font-family:var(--mono);font-weight:800;letter-spacing:.14em;cursor:pointer}
 </style>
 </head>
 <body>
@@ -362,7 +362,7 @@ async function loadModel(){
   try{
     detector=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING});
     modelDot.classList.add('live');
-  }catch(e){ modelDot.style.background='#ff5d3b'; }
+  }catch(e){ modelDot.style.background='#c23a0e'; }
 }
 
 // motion grid for shuttle-ish fast object estimate
@@ -419,7 +419,7 @@ async function loop(){
   // --- draw motion heat + fast marker ---
   if(show.motion && fastX>=0){
     const px=fastX*canvas.width, py=fastY*canvas.height;
-    ctx.strokeStyle='var(--b)'; ctx.strokeStyle='#ff5d3b'; ctx.lineWidth=2;
+    ctx.strokeStyle='#c23a0e'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(px,py,14,0,7); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(px-22,py);ctx.lineTo(px-6,py);ctx.moveTo(px+6,py);ctx.lineTo(px+22,py); ctx.stroke();
   }
@@ -427,7 +427,7 @@ async function loop(){
   if(show.trail && trail.length>1){
     ctx.beginPath();
     for(let i=0;i<trail.length;i++){ const p=trail[i]; const x=p.x*canvas.width,y=p.y*canvas.height; i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
-    ctx.strokeStyle='rgba(255,93,59,.55)'; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.strokeStyle='rgba(194,58,14,.7)'; ctx.lineWidth=2.5; ctx.stroke();
   }
 
   // --- pose detection ---
@@ -447,7 +447,7 @@ async function loop(){
 const EDGES=[[5,7],[7,9],[6,8],[8,10],[5,6],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16],[0,5],[0,6]];
 function drawSkeleton(p){
   const k=p.keypoints;
-  ctx.lineWidth=2; ctx.strokeStyle='rgba(0,229,196,.85)'; ctx.fillStyle='#00e5c4';
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,106,26,.9)'; ctx.fillStyle='#ff6a1a';
   for(const [a,b] of EDGES){ const ka=k[a],kb=k[b]; if(ka.score>.3&&kb.score>.3){ ctx.beginPath();ctx.moveTo(ka.x,ka.y);ctx.lineTo(kb.x,kb.y);ctx.stroke(); } }
   for(const pt of k){ if(pt.score>.3){ ctx.beginPath();ctx.arc(pt.x,pt.y,3,0,7);ctx.fill(); } }
 }
@@ -461,9 +461,9 @@ function drawSpark(){
   const max=Math.max(...speedHist,10);
   sctx.beginPath();
   speedHist.forEach((v,i)=>{ const x=i/(speedHist.length-1)*sc.width; const y=sc.height-(v/max)*sc.height*0.9-3; i?sctx.lineTo(x,y):sctx.moveTo(x,y); });
-  sctx.strokeStyle='#00e5c4'; sctx.lineWidth=2.5; sctx.stroke();
+  sctx.strokeStyle='#ff6a1a'; sctx.lineWidth=2.5; sctx.stroke();
   sctx.lineTo(sc.width,sc.height); sctx.lineTo(0,sc.height); sctx.closePath();
-  sctx.fillStyle='rgba(0,229,196,.08)'; sctx.fill();
+  sctx.fillStyle='rgba(255,106,26,.1)'; sctx.fill();
 }
 </script>
 </body>
