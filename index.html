@@ -85,6 +85,12 @@
   .cam-btn{background:var(--a);color:#04120f;border:none;padding:12px 22px;border-radius:3px;font-family:var(--mono);font-weight:800;letter-spacing:.14em;font-size:12px;cursor:pointer}
   .cam-btn:hover{box-shadow:0 0 18px rgba(0,229,196,.5)}
   .overlay-tag{position:absolute;top:10px;left:10px;z-index:3;font-size:10px;letter-spacing:.18em;color:var(--a);background:rgba(4,18,15,.7);padding:4px 9px;border-radius:3px;border:1px solid rgba(0,229,196,.3)}
+  .calib-badge{position:absolute;bottom:10px;left:10px;z-index:3;font-size:9px;letter-spacing:.14em;color:var(--dim);background:rgba(4,18,15,.7);padding:4px 9px;border-radius:3px;border:1px solid var(--line)}
+  .calib-badge.set{color:var(--a);border-color:rgba(0,229,196,.3)}
+  .feed.calibrating{cursor:crosshair}
+  .calib-hint{position:absolute;inset:0;z-index:4;display:none;align-items:flex-start;justify-content:center;pointer-events:none;padding-top:14px}
+  .feed.calibrating .calib-hint{display:flex}
+  .calib-hint span{background:rgba(4,18,15,.85);color:var(--a);border:1px solid rgba(0,229,196,.4);padding:6px 12px;border-radius:3px;font-size:11px;letter-spacing:.12em}
   .speedpop{position:absolute;top:10px;right:10px;z-index:3;font-size:11px;letter-spacing:.1em;color:var(--b);background:rgba(20,6,4,.75);padding:5px 10px;border-radius:3px;border:1px solid rgba(255,93,59,.35);font-weight:700;opacity:0;transition:.2s}
   .speedpop.show{opacity:1}
 
@@ -159,6 +165,8 @@
       <canvas id="canvas"></canvas>
       <div class="overlay-tag" id="camTag" style="display:none">● TRACKING</div>
       <div class="speedpop" id="speedPop">— km/h</div>
+      <div class="calib-badge" id="calibBadge">SCALE: DEFAULT (frame≈6.1m)</div>
+      <div class="calib-hint"><span id="calibHint">TAP POINT 1</span></div>
       <div class="empty" id="emptyState">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         <div style="letter-spacing:.14em;font-size:12px">CAMERA OFFLINE</div>
@@ -188,6 +196,10 @@
           <button id="tPose" class="on" onclick="tog('pose')">SKELETON</button>
           <button id="tMotion" class="on" onclick="tog('motion')">MOTION</button>
           <button id="tTrail" class="on" onclick="tog('trail')">TRAIL</button>
+        </div>
+        <div class="toggle" style="margin-top:8px">
+          <button id="calibBtn" onclick="startCalib()">◎ CALIBRATE SCALE</button>
+          <button onclick="resetCalib()">RESET</button>
         </div>
         <div class="disc">*Speed is an <b>approximate</b> estimate. Browser webcams (~30 FPS) can't reliably freeze a shuttle that moves up to ~400 km/h, so treat numbers as relative, not competition-grade. For true tracking use a 120+ FPS camera with a YOLO model.</div>
       </div>
@@ -269,8 +281,65 @@ let detector=null, running=false, prevGray=null;
 const show={pose:true,motion:true,trail:true};
 function tog(k){ show[k]=!show[k]; document.getElementById('t'+k[0].toUpperCase()+k.slice(1)).classList.toggle('on',show[k]); }
 
-// speed calibration: assume the visible court width ≈ 6.1 m (doubles court) spans the frame width
-const COURT_M=6.1;
+// speed calibration
+// mPerNormX = real metres represented by 1.0 of normalised frame width.
+// Default assumes the doubles court width (6.1 m) spans the full frame.
+let mPerNormX=6.1;
+let calibMode=0, calibP1=null; // 0=off,1=await p1,2=await p2
+
+const COURT_LINES=[
+  {label:'Doubles court width (whole width, side line to side line)',m:6.10},
+  {label:'Singles court width',m:5.18},
+  {label:'Half court length (net to back boundary)',m:6.70},
+  {label:'Full court length (back line to back line)',m:13.40},
+  {label:'Service line to back line (long service, doubles)',m:0.76},
+];
+
+function startCalib(){
+  if(!running){ calibHint.textContent='START CAMERA FIRST'; feed.classList.add('calibrating'); setTimeout(()=>feed.classList.remove('calibrating'),1200); return; }
+  calibMode=1; calibP1=null;
+  feed.classList.add('calibrating'); calibHint.textContent='TAP FIRST POINT ON A COURT LINE';
+  calibBtn.classList.add('on');
+}
+function resetCalib(){
+  mPerNormX=6.1; calibMode=0; calibP1=null;
+  feed.classList.remove('calibrating'); calibBtn.classList.remove('on');
+  calibBadge.textContent='SCALE: DEFAULT (frame≈6.1m)'; calibBadge.classList.remove('set');
+}
+// feed is display-flipped (scaleX(-1)); convert a click to the un-flipped normalised coord
+function feedClick(e){
+  if(!calibMode)return;
+  const r=feed.getBoundingClientRect();
+  let nx=(e.clientX-r.left)/r.width;
+  nx=1-nx;                       // undo mirror
+  const ny=(e.clientY-r.top)/r.height;
+  if(calibMode===1){ calibP1={x:nx,y:ny}; calibMode=2; calibHint.textContent='TAP SECOND POINT'; }
+  else if(calibMode===2){
+    const p2={x:nx,y:ny};
+    const aspect=canvas.height/canvas.width||0.625;
+    const dxn=(p2.x-calibP1.x), dyn=(p2.y-calibP1.y)*aspect;
+    const normDist=Math.hypot(dxn,dyn);       // distance in normalised-X units
+    finishCalib(normDist);
+  }
+}
+feed.addEventListener('click',feedClick);
+
+function finishCalib(normDist){
+  feed.classList.remove('calibrating'); calibBtn.classList.remove('on');
+  const list=COURT_LINES.map((l,i)=>`${i+1}) ${l.label} — ${l.m} m`).join('\n');
+  let real=prompt('Real-world distance between the two points (metres).\n\nCommon badminton references:\n'+list+'\n\nEnter a number, or a menu index 1–'+COURT_LINES.length+':','6.10');
+  if(real===null){ calibMode=0; return; }
+  real=real.trim();
+  let m=null;
+  if(/^[1-5]$/.test(real) && COURT_LINES[+real-1]) m=COURT_LINES[+real-1].m;
+  else m=parseFloat(real);
+  if(!m||m<=0||!normDist){ calibMode=0; calibHint.textContent=''; return; }
+  mPerNormX=m/normDist;
+  calibMode=0;
+  calibBadge.textContent='SCALE: '+(mPerNormX).toFixed(2)+' m/frame · SET';
+  calibBadge.classList.add('set');
+}
+
 let peak=0, speedHist=[], trail=[], lastMotionT=0;
 
 async function startCam(){
@@ -326,7 +395,7 @@ async function loop(){
     const dt=(now-lastMotionT)/1000;
     if(trail.length){
       const p=trail[trail.length-1];
-      const dxm=(fastX-p.x)*COURT_M, dym=(fastY-p.y)*COURT_M*(canvas.height/canvas.width);
+      const dxm=(fastX-p.x)*mPerNormX, dym=(fastY-p.y)*mPerNormX*(canvas.height/canvas.width);
       const dist=Math.hypot(dxm,dym);
       const v=dist/dt*3.6; // km/h
       if(v>4 && v<450){
